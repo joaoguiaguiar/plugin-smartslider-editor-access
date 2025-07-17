@@ -32,7 +32,6 @@ class IBRAM_EditorAccess {
         add_filter('option_page_capability_smartslider3', [$this, 'smartslider_cap']);
         add_action('load-customize.php', [$this, 'block_customizer']);
         
-        // Melhorias adicionais
         add_action('admin_init', [$this, 'validate_access']);
         add_action('wp_login', [$this, 'log_editor_login']);
         add_action('admin_bar_menu', [$this, 'clean_admin_bar'], 999);

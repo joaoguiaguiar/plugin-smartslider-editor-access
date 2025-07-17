@@ -99,12 +99,6 @@ $allowed_submenus = [
 - ✅ **Capacidade customizada**: `smartslider_config` para controle específico
 - ✅ **Limpeza de interface**: remove elementos desnecessários
 
-## 📦 Instalação
-
-1. Faça upload do plugin para `/wp-content/plugins/`
-2. Ative o plugin no painel do WordPress
-3. As capacidades serão automaticamente adicionadas aos editores
-
 ## 🚀 Resultado Final
 
 O plugin resolve completamente o problema original:
