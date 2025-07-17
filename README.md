@@ -6,7 +6,7 @@ Após o desenvolvimento completo do tema e instalação dos plugins nos sites of
 
 A princípio, parecia algo simples ajustar os papéis e permissões no WordPress mas logo identifiquei um bloqueio importante: o plugin Smart Slider 3, que usamos intensamente na publicação de conteúdos visuais, simplesmente não funciona corretamente para o papel de Editor.
 
-Mesmo adicionando manualmente todas as capabilities relacionadas ao plugin (como `smartslider_edit`, `smartslider_edit_sliders`, etc.), o menu continuava oculto ou incompleto.
+Mesmo adicionando manualmente todas as capacidades relacionadas ao plugin (como `smartslider_edit`, `smartslider_edit_sliders`, etc.), o menu continuava oculto ou incompleto.
 
 ## 🧪 Tentativa Inicial
 
