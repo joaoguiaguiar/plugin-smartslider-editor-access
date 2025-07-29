@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Permissões IBRAM – Editor com Acesso Seguro ao Smart Slider
  * Description: Acesso personalizado e seguro para o papel de Editor. O foco deste plugin é permitir o uso do Smart Slider sem necessidade de privilégios de administrador, além de garantir acesso completo a páginas, posts, menus e widgets. Todo o restante do painel é bloqueado, trazendo mais segurança para a infraestrutura do site.
- * Version: 1.1
+ * Version: 1.2
  * Author: joao.aguiar
  * Author URI: https://github.com/joaoguiaguiar
  */
@@ -32,6 +32,7 @@ class IBRAM_EditorAccess {
         add_filter('option_page_capability_smartslider3', [$this, 'smartslider_cap']);
         add_action('load-customize.php', [$this, 'block_customizer']);
         
+        // Melhorias adicionais
         add_action('admin_init', [$this, 'validate_access']);
         add_action('wp_login', [$this, 'log_editor_login']);
         add_action('admin_bar_menu', [$this, 'clean_admin_bar'], 999);
@@ -45,6 +46,9 @@ class IBRAM_EditorAccess {
             'smartslider',
             'smartslider_edit',
             'smartslider_config',
+            'smartslider_delete',        // ADICIONADO: Permissão para deletar slides
+            'smartslider_edit_sliders',  // ADICIONADO: Permissão específica para editar sliders
+            'smartslider_delete_sliders', // ADICIONADO: Permissão específica para deletar sliders
             'edit_posts',
             'edit_pages',
             'publish_pages',
@@ -68,6 +72,9 @@ class IBRAM_EditorAccess {
             'smartslider' => true,
             'smartslider_edit' => true,
             'smartslider_config' => true,
+            'smartslider_delete' => true,        // ADICIONADO: Permissão para deletar slides
+            'smartslider_edit_sliders' => true,  // ADICIONADO: Permissão específica para editar sliders
+            'smartslider_delete_sliders' => true, // ADICIONADO: Permissão específica para deletar sliders
             'edit_posts' => true,
             'edit_pages' => true,
             'publish_pages' => true,
@@ -175,7 +182,7 @@ class IBRAM_EditorAccess {
         $role = get_role('editor');
         if (!$role) return false;
 
-        $required_caps = ['smartslider', 'smartslider_edit', 'smartslider_config'];
+        $required_caps = ['smartslider', 'smartslider_edit', 'smartslider_config', 'smartslider_delete'];
         foreach ($required_caps as $cap) {
             if (!$role->has_cap($cap)) {
                 return false;
@@ -195,6 +202,9 @@ register_activation_hook(__FILE__, function () {
             'smartslider',
             'smartslider_edit',
             'smartslider_config',
+            'smartslider_delete',        // ADICIONADO: Permissão para deletar slides
+            'smartslider_edit_sliders',  // ADICIONADO: Permissão específica para editar sliders
+            'smartslider_delete_sliders', // ADICIONADO: Permissão específica para deletar sliders
             'edit_theme_options'
         ];
         
@@ -215,6 +225,9 @@ register_deactivation_hook(__FILE__, function () {
             'smartslider',
             'smartslider_edit',
             'smartslider_config',
+            'smartslider_delete',        // ADICIONADO: Permissão para deletar slides
+            'smartslider_edit_sliders',  // ADICIONADO: Permissão específica para editar sliders
+            'smartslider_delete_sliders', // ADICIONADO: Permissão específica para deletar sliders
             'edit_theme_options'
         ];
         
