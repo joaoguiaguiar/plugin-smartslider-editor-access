@@ -1,54 +1,56 @@
 <?php
 /**
  * Plugin Name: Permissões IBRAM – Editor com Acesso Seguro ao Smart Slider
- * Description: Acesso personalizado e seguro para o papel de Editor. O foco deste plugin é permitir o uso do Smart Slider sem necessidade de privilégios de administrador, além de garantir acesso completo a páginas, posts, menus e widgets. Todo o restante do painel é bloqueado, trazendo mais segurança para a infraestrutura do site.
+ * Description: Dá ao papel de Editor permissão de usar o Smart Slider, editar páginas, posts, menus e widgets. Todo o resto do painel fica bloqueado para aumentar a segurança.
  * Version: 1.2
  * Author: joao.aguiar
  * Author URI: https://github.com/joaoguiaguiar
  */
 
-
 if (!defined('ABSPATH')) exit;
 
-class IBRAM_EditorAccess {
+class IBRAM_AcessoEditor {
 
-    private $allowed_pages = [
-        'index.php',                  // Painel
-        'edit.php',                  // Posts
-        'edit.php?post_type=page',   // Páginas
-        'themes.php',                // Aparência
-        'admin.php?page=smartslider' // Smart Slider
+    // Páginas que o editor pode abrir
+    private $paginas_permitidas = [
+        'index.php',                   // Painel inicial
+        'edit.php',                    // Posts
+        'edit.php?post_type=page',     // Páginas
+        'themes.php',                  // Aparência
+        'admin.php?page=smartslider'   // Smart Slider
     ];
 
-    private $allowed_submenus = [
+    // Submenus que o editor pode abrir dentro de Aparência
+    private $submenus_permitidos = [
         'nav-menus.php',   // Menus
         'widgets.php'      // Widgets
     ];
 
     public function __construct() {
-        add_action('init', [$this, 'setup_caps']);
-        add_filter('user_has_cap', [$this, 'manage_caps'], 10, 4);
-        add_action('admin_menu', [$this, 'setup_menu'], 999);
-        add_filter('option_page_capability_smartslider3', [$this, 'smartslider_cap']);
-        add_action('load-customize.php', [$this, 'block_customizer']);
-        
-        // Melhorias adicionais
-        add_action('admin_init', [$this, 'validate_access']);
-        add_action('wp_login', [$this, 'log_editor_login']);
-        add_action('admin_bar_menu', [$this, 'clean_admin_bar'], 999);
+        add_action('init', [$this, 'definir_permissoes']);
+        add_filter('user_has_cap', [$this, 'forcar_permissoes'], 10, 4);
+        add_action('admin_menu', [$this, 'ajustar_menus'], 999);
+        add_filter('option_page_capability_smartslider3', [$this, 'permissao_smartslider']);
+        add_action('load-customize.php', [$this, 'bloquear_personalizador']);
+
+        // Extras
+        add_action('admin_init', [$this, 'validar_acesso']);
+        add_action('wp_login', [$this, 'registrar_login_editor']);
+        add_action('admin_bar_menu', [$this, 'limpar_barra_admin'], 999);
     }
 
-    public function setup_caps() {
-        $role = get_role('editor');
-        if (!$role) return;
+    // Dá as permissões básicas ao papel de editor
+    public function definir_permissoes() {
+        $editor = get_role('editor');
+        if (!$editor) return;
 
-        $caps = [
+        $permissoes = [
             'smartslider',
             'smartslider_edit',
             'smartslider_config',
-            'smartslider_delete',        // ADICIONADO: Permissão para deletar slides
-            'smartslider_edit_sliders',  // ADICIONADO: Permissão específica para editar sliders
-            'smartslider_delete_sliders', // ADICIONADO: Permissão específica para deletar sliders
+            'smartslider_delete',
+            'smartslider_edit_sliders',
+            'smartslider_delete_sliders',
             'edit_posts',
             'edit_pages',
             'publish_pages',
@@ -56,25 +58,26 @@ class IBRAM_EditorAccess {
             'upload_files'
         ];
 
-        foreach ($caps as $cap) {
-            if (!$role->has_cap($cap)) {
-                $role->add_cap($cap);
+        foreach ($permissoes as $p) {
+            if (!$editor->has_cap($p)) {
+                $editor->add_cap($p);
             }
         }
     }
 
-    public function manage_caps($allcaps, $caps, $args, $user) {
-        if (!in_array('editor', (array) $user->roles)) {
-            return $allcaps;
+    // Garante que os editores sempre tenham as permissões necessárias
+    public function forcar_permissoes($todas, $solicitadas, $args, $usuario) {
+        if (!in_array('editor', (array) $usuario->roles)) {
+            return $todas;
         }
 
-        return array_merge($allcaps, [
+        return array_merge($todas, [
             'smartslider' => true,
             'smartslider_edit' => true,
             'smartslider_config' => true,
-            'smartslider_delete' => true,        // ADICIONADO: Permissão para deletar slides
-            'smartslider_edit_sliders' => true,  // ADICIONADO: Permissão específica para editar sliders
-            'smartslider_delete_sliders' => true, // ADICIONADO: Permissão específica para deletar sliders
+            'smartslider_delete' => true,
+            'smartslider_edit_sliders' => true,
+            'smartslider_delete_sliders' => true,
             'edit_posts' => true,
             'edit_pages' => true,
             'publish_pages' => true,
@@ -83,49 +86,50 @@ class IBRAM_EditorAccess {
         ]);
     }
 
-    public function setup_menu() {
-        $user = wp_get_current_user();
-        if (!in_array('editor', (array) $user->roles)) return;
+    // Remove menus que o editor não deve ver
+    public function ajustar_menus() {
+        $usuario = wp_get_current_user();
+        if (!in_array('editor', (array) $usuario->roles)) return;
 
         global $submenu;
 
-        // Remove menus não permitidos
-        foreach ($GLOBALS['menu'] as $id => $item) {
-            if (!in_array($item[2], $this->allowed_pages)) {
+        // Menus principais
+        foreach ($GLOBALS['menu'] as $item) {
+            if (!in_array($item[2], $this->paginas_permitidas)) {
                 remove_menu_page($item[2]);
             }
         }
 
-        // Submenus da Aparência: Menus e Widgets apenas
+        // Submenus de aparência
         if (isset($submenu['themes.php'])) {
-            foreach ($submenu['themes.php'] as $id => $subitem) {
-                if (!in_array($subitem[2], $this->allowed_submenus)) {
+            foreach ($submenu['themes.php'] as $subitem) {
+                if (!in_array($subitem[2], $this->submenus_permitidos)) {
                     remove_submenu_page('themes.php', $subitem[2]);
                 }
             }
         }
     }
 
-    public function smartslider_cap() {
+    public function permissao_smartslider() {
         return 'smartslider_config';
     }
 
-    public function block_customizer() {
+    // Bloqueia o Personalizador (customize.php)
+    public function bloquear_personalizador() {
         if (current_user_can('editor') && !current_user_can('manage_options')) {
-            $this->log_blocked_access('Customizer');
+            $this->registrar_bloqueio('Personalizador');
             wp_die('Acesso ao Personalizador está bloqueado por segurança.');
         }
     }
 
-    // Validação adicional de acesso
-    public function validate_access() {
-        $user = wp_get_current_user();
-        if (!in_array('editor', (array) $user->roles)) return;
+    // Bloqueia acessos a páginas sensíveis
+    public function validar_acesso() {
+        $usuario = wp_get_current_user();
+        if (!in_array('editor', (array) $usuario->roles)) return;
 
         global $pagenow;
-        
-        // Páginas explicitamente bloqueadas
-        $blocked_pages = [
+
+        $bloqueadas = [
             'update-core.php',
             'update.php',
             'plugin-install.php',
@@ -136,8 +140,8 @@ class IBRAM_EditorAccess {
             'options-general.php'
         ];
 
-        if (in_array($pagenow, $blocked_pages)) {
-            $this->log_blocked_access($pagenow);
+        if (in_array($pagenow, $bloqueadas)) {
+            $this->registrar_bloqueio($pagenow);
             wp_die(
                 'Acesso não permitido. Esta tentativa foi registrada.',
                 'Acesso Restrito',
@@ -146,101 +150,91 @@ class IBRAM_EditorAccess {
         }
     }
 
-    // Log de tentativas de acesso bloqueadas
-    private function log_blocked_access($page) {
-        $user = wp_get_current_user();
-        $timestamp = date('Y-m-d H:i:s');
+    // Registro de acessos bloqueados
+    private function registrar_bloqueio($pagina) {
+        $usuario = wp_get_current_user();
+        $quando = date('Y-m-d H:i:s');
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'IP não disponível';
-        
-        error_log("IBRAM Security: Editor {$user->user_login} tentou acessar {$page} em {$timestamp} (IP: {$ip})");
+        error_log("IBRAM Segurança: Editor {$usuario->user_login} tentou acessar {$pagina} em {$quando} (IP: {$ip})");
     }
 
-    // Log de login de editores
-    public function log_editor_login($user_login) {
-        $user = get_user_by('login', $user_login);
-        if ($user && in_array('editor', (array) $user->roles)) {
-            $timestamp = date('Y-m-d H:i:s');
+    // Registro de login de editores
+    public function registrar_login_editor($login) {
+        $usuario = get_user_by('login', $login);
+        if ($usuario && in_array('editor', (array) $usuario->roles)) {
+            $quando = date('Y-m-d H:i:s');
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'IP não disponível';
-            error_log("IBRAM Access: Editor {$user_login} fez login em {$timestamp} (IP: {$ip})");
+            error_log("IBRAM Acesso: Editor {$login} fez login em {$quando} (IP: {$ip})");
         }
     }
 
-    // Limpa a barra de admin
-    public function clean_admin_bar($wp_admin_bar) {
-        $user = wp_get_current_user();
-        if (!in_array('editor', (array) $user->roles)) return;
+    // Remove itens inúteis da barra superior
+    public function limpar_barra_admin($barra) {
+        $usuario = wp_get_current_user();
+        if (!in_array('editor', (array) $usuario->roles)) return;
 
-        // Remove itens desnecessários
-        $wp_admin_bar->remove_node('updates');
-        $wp_admin_bar->remove_node('comments');
-        $wp_admin_bar->remove_node('customize');
-        $wp_admin_bar->remove_node('themes');
+        $barra->remove_node('updates');
+        $barra->remove_node('comments');
+        $barra->remove_node('customize');
+        $barra->remove_node('themes');
     }
 
-    // Método para verificar saúde do plugin
-    public function health_check() {
-        $role = get_role('editor');
-        if (!$role) return false;
+    // Testa se o plugin está funcionando
+    public function checar_status() {
+        $editor = get_role('editor');
+        if (!$editor) return false;
 
-        $required_caps = ['smartslider', 'smartslider_edit', 'smartslider_config', 'smartslider_delete'];
-        foreach ($required_caps as $cap) {
-            if (!$role->has_cap($cap)) {
-                return false;
-            }
+        $necessarias = ['smartslider', 'smartslider_edit', 'smartslider_config', 'smartslider_delete'];
+        foreach ($necessarias as $p) {
+            if (!$editor->has_cap($p)) return false;
         }
         return true;
     }
 }
 
-new IBRAM_EditorAccess();
+new IBRAM_AcessoEditor();
 
 // Ativação
 register_activation_hook(__FILE__, function () {
-    $role = get_role('editor');
-    if ($role) {
-        $caps = [
+    $editor = get_role('editor');
+    if ($editor) {
+        $permissoes = [
             'smartslider',
             'smartslider_edit',
             'smartslider_config',
-            'smartslider_delete',        // ADICIONADO: Permissão para deletar slides
-            'smartslider_edit_sliders',  // ADICIONADO: Permissão específica para editar sliders
-            'smartslider_delete_sliders', // ADICIONADO: Permissão específica para deletar sliders
+            'smartslider_delete',
+            'smartslider_edit_sliders',
+            'smartslider_delete_sliders',
             'edit_theme_options'
         ];
-        
-        foreach ($caps as $cap) {
-            $role->add_cap($cap);
+        foreach ($permissoes as $p) {
+            $editor->add_cap($p);
         }
-        
-        // Log da ativação
-        error_log("IBRAM Plugin: Ativado com sucesso em " . date('Y-m-d H:i:s'));
+        error_log("IBRAM Plugin: Ativado em " . date('Y-m-d H:i:s'));
     }
 });
 
 // Desativação
 register_deactivation_hook(__FILE__, function () {
-    $role = get_role('editor');
-    if ($role) {
-        $caps = [
+    $editor = get_role('editor');
+    if ($editor) {
+        $permissoes = [
             'smartslider',
             'smartslider_edit',
             'smartslider_config',
-            'smartslider_delete',        // ADICIONADO: Permissão para deletar slides
-            'smartslider_edit_sliders',  // ADICIONADO: Permissão específica para editar sliders
-            'smartslider_delete_sliders', // ADICIONADO: Permissão específica para deletar sliders
+            'smartslider_delete',
+            'smartslider_edit_sliders',
+            'smartslider_delete_sliders',
             'edit_theme_options'
         ];
-        
-        foreach ($caps as $cap) {
-            $role->remove_cap($cap);
+        foreach ($permissoes as $p) {
+            $editor->remove_cap($p);
         }
-        
-        // Log da desativação
         error_log("IBRAM Plugin: Desativado em " . date('Y-m-d H:i:s'));
     }
 });
 
-// Adiciona menu de status (opcional)
+// Página de status no admin
 add_action('admin_menu', function() {
     if (current_user_can('manage_options')) {
         add_management_page(
@@ -249,8 +243,8 @@ add_action('admin_menu', function() {
             'manage_options',
             'ibram-status',
             function() {
-                $plugin = new IBRAM_EditorAccess();
-                $status = $plugin->health_check() ? 'Funcionando' : 'Problema detectado';
+                $plugin = new IBRAM_AcessoEditor();
+                $status = $plugin->checar_status() ? 'Funcionando' : 'Problema detectado';
                 echo "<div class='wrap'><h1>Status do Plugin IBRAM</h1>";
                 echo "<p>Status: <strong>{$status}</strong></p>";
                 echo "<p>Última verificação: " . date('Y-m-d H:i:s') . "</p>";
@@ -259,4 +253,3 @@ add_action('admin_menu', function() {
         );
     }
 });
-?>
