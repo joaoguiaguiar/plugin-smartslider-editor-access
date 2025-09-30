@@ -1,11 +1,14 @@
 <?php
-/**
- * Plugin Name: Permissões IBRAM – Editor com Acesso Seguro ao Smart Slider
- * Description: Dá ao papel de Editor permissão de usar o Smart Slider, editar páginas, posts, menus e widgets. Todo o resto do painel fica bloqueado para aumentar a segurança.
- * Version: 1.2
- * Author: joao.aguiar
- * Author URI: https://github.com/joaoguiaguiar
- */
+/*
+Plugin Name: Editor com Acesso Seguro – Permissões IBRAM
+Plugin URI: https://github.com/joaoguiaguiar/plugin-smartslider-ibram
+Description: Dá ao Editor permissão pro Smart Slider, páginas, posts, menus e widgets. Resto do painel fica bloqueado.
+Version: 1.2.0
+Author: CTINF / joao.aguiar
+Author URI: https://github.com/joaoguiaguiar
+Text Domain: ibram-permissoes
+License: GPL v2 or later
+*/
 
 if (!defined('ABSPATH')) exit;
 
