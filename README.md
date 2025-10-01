@@ -107,3 +107,9 @@ O plugin resolve completamente o problema original:
 - **Interface limpa** - apenas o necessário ✅
 - **Solução robusta** - sem gambiarras ✅
 
+**⚠️ BLINDAGEM LEGAL:**
+
+- Por questões de **confidencialidade e boas práticas**, este repositório contém **apenas arquivos de minha autoria** e não inclui dados sensíveis.
+- O código-fonte pertence integralmente ao **Instituto Brasileiro de Museus (IBRAM)**.
+- Este repositório é disponibilizado **exclusivamente para fins de portfólio profissional e demonstração técnica**, com a devida autorização do órgão.
+- **É proibida a comercialização (venda) ou redistribuição** do tema e plugins por terceiros.
